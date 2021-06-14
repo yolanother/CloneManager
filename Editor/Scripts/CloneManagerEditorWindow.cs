@@ -146,7 +146,7 @@ namespace Doubtech.CloneManager
                 Directory.CreateDirectory(clone.path);
                 
                 // Create Main Project Files
-                ClonePath(PathProjectSettings, clone, clone.clonedProjectSettings);
+                ClonePath(PathProjectSettings, clone, !clone.clonedProjectSettings);
                 ClonePath(PathAssets, clone);
                 ClonePath(PathPackages, clone);
                 

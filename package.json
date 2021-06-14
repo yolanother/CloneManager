@@ -1,0 +1,12 @@
+{
+  "name": "com.doubtech.unity.clonemanager",
+  "displayName": "DoubTech - Clone Manager",
+  "version": "0.0.1",
+  "unity": "2019.4",
+  "description": "A tool to manage creating clones of your project for multiplayer or multiplatform purposes.",
+  "keywords": [
+    "scene"
+  ],
+  "category": "Scripts",
+  "type": "tool"
+}
