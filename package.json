@@ -8,5 +8,9 @@
     "scene"
   ],
   "category": "Scripts",
-  "type": "tool"
+  "type": "tool",
+  "author": {
+    "name": "Doubling Technologies",
+    "url": "https://unityassets.doubtech.com"
+  }                                               
 }
