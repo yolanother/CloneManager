@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using UnityEngine.Serialization;
 
 namespace Doubtech.CloneManager
 {
@@ -8,7 +9,7 @@ namespace Doubtech.CloneManager
     {
         public bool isMaster;
         public string path;
-        public bool clonedProjectSettings;
+        [FormerlySerializedAs("clonedProjectSettings")] public bool symlinkProjectSettings;
     }
 
     [Serializable]

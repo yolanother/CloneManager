@@ -1,12 +1,9 @@
-using System;
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using Doubtech.CloneManager.UI;
 using UnityEditor;
-using UnityEditor.Build.Content;
 using Debug = UnityEngine.Debug;
 
 namespace Doubtech.CloneManager
@@ -58,7 +55,7 @@ namespace Doubtech.CloneManager
                     {
                         path = ProjectPath,
                         isMaster = true,
-                        clonedProjectSettings = true
+                        symlinkProjectSettings = true
                     };
                 }
 
@@ -66,12 +63,12 @@ namespace Doubtech.CloneManager
                 {
                     path = path,
                     isMaster = false,
-                    clonedProjectSettings = true
+                    symlinkProjectSettings = true
                 };
                 clones.Add(clone);
                 
-                clone.clonedProjectSettings = EditorUtility.DisplayDialog("Clone Project Settings?",
-                    "Do you want this clone to have its own project settings?", "Yes", "No");
+                clone.symlinkProjectSettings = EditorUtility.DisplayDialog("Share Project Settings?",
+                    "Do you want this clone to have its own project settings via symlink?", "Yes", "No");
                 
                 GetWindow(typeof(CloneManagerEditorWindow)).Repaint();
 
@@ -104,7 +101,7 @@ namespace Doubtech.CloneManager
             actions.Add(new ContextMenuItem("Build", () => Build(clone)));
 
             
-            if (!clone.clonedProjectSettings)
+            if (!clone.symlinkProjectSettings)
             {
                 actions.Add(new ContextMenuItem("-"));
                 actions.Add(new ContextMenuItem("Synchronize Project Settings", () => SyncProjectSettings(clone)));
@@ -123,8 +120,14 @@ namespace Doubtech.CloneManager
                 }
             }
 
-            GUILayout.Label(new DirectoryInfo(clone.path).Name, EditorStyles.label);
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(new GUIContent(new DirectoryInfo(clone.path).Name, clone.path), EditorStyles.label);
             ContextMenuUI.DrawContextMenu(actions.ToArray(), () => OpenInUnity(clone));
+            if (UIUtil.BorderlessUnityButton("d_FolderOpened Icon", tooltip: "Open in Explorer"))
+            {
+                EditorUtility.RevealInFinder(clone.path);
+            }
+            GUILayout.EndHorizontal();
         }
 
         private delegate string PathGen(Clone clone);
@@ -147,7 +150,7 @@ namespace Doubtech.CloneManager
                 Directory.CreateDirectory(clone.path);
                 
                 // Create Main Project Files
-                ClonePath(PathProjectSettings, clone, !clone.clonedProjectSettings);
+                ClonePath(PathProjectSettings, clone, clone.symlinkProjectSettings);
                 ClonePath(PathAssets, clone);
                 ClonePath(PathPackages, clone);
                 
@@ -221,7 +224,7 @@ namespace Doubtech.CloneManager
 
         private void SyncProjectSettings(Clone clone)
         {
-            if (!clone.isMaster && !clone.clonedProjectSettings && EditorUtility.DisplayDialog("Sync Settings?", "This will replace this clone's current project settings with those from master. Are you sure?", "OK", "Cancel"))
+            if (!clone.isMaster && !clone.symlinkProjectSettings && EditorUtility.DisplayDialog("Sync Settings?", "This will replace this clone's current project settings with those from master. Are you sure?", "OK", "Cancel"))
             {
                 var source = Path.Combine(clones.master.path, "ProjectSettings");
                 var target = Path.Combine(clone.path, "ProjectSettings");
