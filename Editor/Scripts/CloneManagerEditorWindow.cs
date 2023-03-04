@@ -14,7 +14,8 @@ namespace Doubtech.CloneManager
     public class CloneManagerEditorWindow : EditorWindow
     {
         private static CloneData clones = new CloneData();
-        
+        private Vector2 scrollView;
+
         [MenuItem("Tools/Clone Manager/Manager")]
         static void Init() {
             var window = (CloneManagerEditorWindow) GetWindow(typeof(CloneManagerEditorWindow));
@@ -161,6 +162,14 @@ namespace Doubtech.CloneManager
 
         private void OnGUI()
         {
+            GUILayout.BeginHorizontal();
+            var projectPath = new DirectoryInfo(Application.dataPath).Parent.FullName;
+            EditorGUILayout.TextField(projectPath, GUILayout.ExpandWidth(true));
+            if (UIUtil.BorderlessUnityButton("d_FolderOpened Icon", tooltip: "Open in Explorer"))
+            {
+                EditorUtility.RevealInFinder(projectPath);
+            }
+            GUILayout.EndHorizontal();
             EditorGUILayout.LabelField("Primary", EditorStyles.boldLabel);
             if (clones.master != null)
             {
@@ -171,8 +180,8 @@ namespace Doubtech.CloneManager
                 EditorGUILayout.LabelField(DirectoryLabel(new DirectoryInfo(Application.dataPath).Parent.FullName));
             }
 
+            scrollView = GUILayout.BeginScrollView(scrollView);
             EditorGUILayout.LabelField("Clones", EditorStyles.boldLabel);
-            //EditorGUILayout.LabelField(EditorApplication.applicationPath);
 
             foreach (var clone in clones.clones)
             {
@@ -181,6 +190,7 @@ namespace Doubtech.CloneManager
                     DrawClone(clone);
                 }
             }
+            GUILayout.EndScrollView();
         }
 
         private void OnProjectChange()
@@ -190,6 +200,7 @@ namespace Doubtech.CloneManager
 
         private void OnEnable()
         {
+            titleContent = new GUIContent("Clone Manager");
             Load();
         }
 
