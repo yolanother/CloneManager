@@ -13,6 +13,17 @@ namespace Doubtech.CloneManager
         private static CloneData clones = new CloneData();
         private Vector2 scrollView;
 
+        private static string SourcePath
+        {
+            get
+            {
+                if (null == clones) return ProjectPath;
+                if (null == clones.master) return ProjectPath;
+                if (!Directory.Exists(clones.master.path)) return ProjectPath;
+                return clones.master.path;
+            }
+        }
+
         [MenuItem("Tools/Clone Manager/Manager")]
         static void Init() {
             var window = (CloneManagerEditorWindow) GetWindow(typeof(CloneManagerEditorWindow));
@@ -27,8 +38,11 @@ namespace Doubtech.CloneManager
             var dir = parentProject.Parent.FullName;
             var name = parentProject.Name + (clones.Count > 0 ? " (Clone " + clones.Count + ")" : " (Clone)");
             string path = EditorUtility.SaveFilePanel("Create Clone", dir, name, "");
-            var clone = AddCloneData(path);
-            if(null != clone) GenerateClone(clone);
+            if (!string.IsNullOrEmpty(path))
+            {
+                var clone = AddCloneData(path);
+                if (null != clone) GenerateClone(clone);
+            }
         }
 
         [MenuItem("Tools/Clone Manager/Add Existing Clone", false, 1)]
@@ -37,7 +51,7 @@ namespace Doubtech.CloneManager
             var parentProject = new DirectoryInfo(Application.dataPath).Parent;
             var dir = parentProject.Parent.FullName;
             var path = EditorUtility.OpenFolderPanel("Add Existing Clone", dir, "");
-            if (null != path)
+            if (!string.IsNullOrEmpty(path))
             {
                 AddCloneData(path);
             }
@@ -47,7 +61,7 @@ namespace Doubtech.CloneManager
 
         private static Clone AddCloneData(string path)
         {
-            if (null != path)
+            if (Directory.Exists(path))
             {
                 if (clones.Count == 0)
                 {
@@ -65,15 +79,16 @@ namespace Doubtech.CloneManager
                     isMaster = false,
                     symlinkProjectSettings = true
                 };
+                Debug.Log("Adding clone: " + clone.path);
                 clones.Add(clone);
                 
                 clone.symlinkProjectSettings = EditorUtility.DisplayDialog("Share Project Settings?",
-                    "Do you want this clone to have its own project settings via symlink?", "Yes", "No");
+                    "Do you want this clone share this project's settings via symlink?", "Yes", "No");
                 
                 GetWindow(typeof(CloneManagerEditorWindow)).Repaint();
 
                 string cloneData = JsonUtility.ToJson(clones);
-                File.WriteAllText(Path.Combine(Application.dataPath, "clone.manager"), cloneData);
+                File.WriteAllText(Path.Combine(SourcePath, "clone.manager"), cloneData);
                 return clone;
             }
 
@@ -85,10 +100,17 @@ namespace Doubtech.CloneManager
             return new GUIContent(new DirectoryInfo(path).Name, path);
         }
 
-        private static string PathProjectSettings(Clone clone) => Path.Combine(clone.path, "ProjectSettings");
-        private static string PathAssets(Clone clone) => Path.Combine(clone.path, "Assets");
-        private static string PathLibrary(Clone clone) => Path.Combine(clone.path, "Library");
-        private static string PathPackages(Clone clone) => Path.Combine(clone.path, "Packages");
+        public static string SafeSourcePath(Clone clone)
+        {
+            if (null == clone) return ProjectPath;
+            if (!Directory.Exists(clone.path)) return ProjectPath;
+            return clone.path;
+        }
+
+        private static string PathProjectSettings(Clone clone) => Path.Combine(SafeSourcePath(clone), "ProjectSettings");
+        private static string PathAssets(Clone clone) => Path.Combine(SafeSourcePath(clone), "Assets");
+        private static string PathLibrary(Clone clone) => Path.Combine(SafeSourcePath(clone), "Library");
+        private static string PathPackages(Clone clone) => Path.Combine(SafeSourcePath(clone), "Packages");
 
         private void DrawClone(Clone clone)
         {
@@ -123,6 +145,10 @@ namespace Doubtech.CloneManager
             GUILayout.BeginHorizontal();
             GUILayout.Label(new GUIContent(new DirectoryInfo(clone.path).Name, clone.path), EditorStyles.label);
             ContextMenuUI.DrawContextMenu(actions.ToArray(), () => OpenInUnity(clone));
+            if (UIUtil.BorderlessUnityButton("BuildSettings.Editor.Small", tooltip: "Open In Unity"))
+            {
+                OpenInUnity(clone);
+            }
             if (UIUtil.BorderlessUnityButton("d_FolderOpened Icon", tooltip: "Open in Explorer"))
             {
                 EditorUtility.RevealInFinder(clone.path);
@@ -173,14 +199,15 @@ namespace Doubtech.CloneManager
                 EditorUtility.RevealInFinder(projectPath);
             }
             GUILayout.EndHorizontal();
+            
             EditorGUILayout.LabelField("Primary", EditorStyles.boldLabel);
-            if (clones.master != null)
+            if (clones.master != null && Directory.Exists(clones.master.path))
             {
                 DrawClone(clones.master);
             }
             else
             {
-                EditorGUILayout.LabelField(DirectoryLabel(new DirectoryInfo(Application.dataPath).Parent.FullName));
+                EditorGUILayout.LabelField(DirectoryLabel(SourcePath));
             }
 
             scrollView = GUILayout.BeginScrollView(scrollView);
@@ -188,7 +215,7 @@ namespace Doubtech.CloneManager
 
             foreach (var clone in clones.clones)
             {
-                if (!clone.isMaster)
+                if (!clone.isMaster && Directory.Exists(clone.path))
                 {
                     DrawClone(clone);
                 }
@@ -207,14 +234,9 @@ namespace Doubtech.CloneManager
             Load();
         }
 
-        private void OnFocus()
-        {
-            Load();
-        }
-
         private void Load()
         {
-            var path = Path.Combine(Application.dataPath, "clone.manager");
+            var path = Path.Combine(SourcePath, "clone.manager");
             if (File.Exists(path))
             {
                 var json = File.ReadAllText(path);
@@ -226,7 +248,7 @@ namespace Doubtech.CloneManager
         {
             if (!clone.isMaster && !clone.symlinkProjectSettings && EditorUtility.DisplayDialog("Sync Settings?", "This will replace this clone's current project settings with those from master. Are you sure?", "OK", "Cancel"))
             {
-                var source = Path.Combine(clones.master.path, "ProjectSettings");
+                var source = Path.Combine(SourcePath, "ProjectSettings");
                 var target = Path.Combine(clone.path, "ProjectSettings");
                 Directory.Delete(target);
                 FileIO.ProcessXcopy(source, target);
