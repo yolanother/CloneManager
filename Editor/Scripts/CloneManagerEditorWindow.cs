@@ -40,7 +40,7 @@ namespace Doubtech.CloneManager
             string path = EditorUtility.SaveFilePanel("Create Clone", dir, name, "");
             if (!string.IsNullOrEmpty(path))
             {
-                var clone = AddCloneData(path);
+                var clone = AddCloneData(path, true);
                 if (null != clone) GenerateClone(clone);
             }
         }
@@ -59,9 +59,9 @@ namespace Doubtech.CloneManager
         
         private static string ProjectPath => new DirectoryInfo(Application.dataPath).Parent.FullName;
 
-        private static Clone AddCloneData(string path)
+        private static Clone AddCloneData(string path, bool create = false)
         {
-            if (Directory.Exists(path))
+            if (create || Directory.Exists(path))
             {
                 if (clones.Count == 0)
                 {
